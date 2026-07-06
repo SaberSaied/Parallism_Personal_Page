@@ -1,0 +1,1 @@
+DELETE FROM auth.users WHERE id IN ('5643b1d4-e808-4273-b4be-ceea2f86c97d','820bc0fe-c11e-4d02-9aab-90a69327661f');
