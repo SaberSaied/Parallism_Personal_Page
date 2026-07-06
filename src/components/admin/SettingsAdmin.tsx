@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { updateParliamentInfo } from "@/lib/content.functions";
 import { parliamentInfoQuery } from "@/lib/queries";
+import MagdyBayoumi from "@/assets/image.jpg";
 import {
   User,
   Mail,
@@ -516,11 +517,13 @@ export function SettingsAdmin() {
               {/* Profile Avatar Mock */}
               <div className="absolute -top-10 left-1/2 h-20 w-20 -translate-x-1/2 overflow-hidden rounded-full border-4 border-white bg-navy-100 shadow-md">
                 <img
-                  src={profileImage || "/src/assets/image.jpg"}
+                  src={profileImage || MagdyBayoumi}
                   alt="Avatar"
                   className="h-full w-full object-cover"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/src/assets/image.jpg";
+                    const img = e.currentTarget;
+                    img.onerror = null;
+                    img.src = MagdyBayoumi;
                   }}
                 />
               </div>
