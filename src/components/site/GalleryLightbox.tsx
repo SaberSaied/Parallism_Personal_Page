@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { ArrowLeft, ArrowRight, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import type { GalleryItem } from "@/lib/parliament-types";
 
 export function GalleryLightbox({
@@ -65,9 +66,16 @@ export function GalleryLightbox({
           className="mx-auto max-h-[80vh] rounded-lg object-contain"
         />
         <figcaption className="mt-3 text-sm text-white/90">{item.title}</figcaption>
-        <div className="text-xs text-white/60">
+        <div className="text-xs text-white/60 mb-3">
           {item.category} · {item.date}
         </div>
+        <Link
+          to="/gallery/$id"
+          params={{ id: item.id }}
+          className="inline-flex items-center gap-1.5 rounded-full bg-gold-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-gold-700 transition"
+        >
+          عرض الصفحة التفصيلية للصورة
+        </Link>
       </figure>
     </div>
   );

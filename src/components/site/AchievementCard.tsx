@@ -1,5 +1,6 @@
 import { Heart, ArrowLeft, ImageOff } from "lucide-react";
 import type { Achievement } from "@/lib/parliament-types";
+import { Link } from "@tanstack/react-router";
 
 export function AchievementCard({
   ach,
@@ -8,12 +9,8 @@ export function AchievementCard({
   ach: Achievement;
   onOpen?: (a: Achievement) => void;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onOpen?.(ach)}
-      className="group cursor-pointer block w-full overflow-hidden rounded-2xl bg-white text-right shadow-sm ring-1 ring-navy-100 transition hover:-translate-y-1 hover:shadow-lg"
-    >
+  const content = (
+    <>
       <div className="relative aspect-[16/10] overflow-hidden">
         {ach.image && !ach.image.includes("/src/assets/") ? (
           <img
@@ -43,6 +40,28 @@ export function AchievementCard({
           </span>
         </div>
       </div>
-    </button>
+    </>
+  );
+
+  if (onOpen) {
+    return (
+      <button
+        type="button"
+        onClick={() => onOpen(ach)}
+        className="group cursor-pointer block w-full overflow-hidden rounded-2xl bg-white text-right shadow-sm ring-1 ring-navy-100 transition hover:-translate-y-1 hover:shadow-lg"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <Link
+      to="/achievements/$id"
+      params={{ id: ach.id }}
+      className="group cursor-pointer block w-full overflow-hidden rounded-2xl bg-white text-right shadow-sm ring-1 ring-navy-100 transition hover:-translate-y-1 hover:shadow-lg"
+    >
+      {content}
+    </Link>
   );
 }

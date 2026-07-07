@@ -1,10 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { updateParliamentInfo } from "@/lib/content.functions";
 import { parliamentInfoQuery } from "@/lib/queries";
 import MagdyBayoumi from "@/assets/image.jpg";
+import { supabase } from "@/integrations/supabase/client";
+import { AdminImageUpload } from "./admin-helpers";
+
+const uploadImage = async (file: File): Promise<string> => {
+  const ext = file.name.includes(".") ? file.name.split(".").pop() : "";
+  const path = `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext ? `.${ext}` : ""}`;
+  const { error } = await supabase.storage
+    .from("request-attachments")
+    .upload(path, file, { cacheControl: "3600", upsert: false });
+  if (error) throw error;
+  const { data } = supabase.storage.from("request-attachments").getPublicUrl(path);
+  return data.publicUrl;
+};
 import {
   User,
   Mail,
@@ -60,6 +73,8 @@ export function SettingsAdmin() {
   const [district, setDistrict] = useState("");
   const [profileImage, setProfileImage] = useState("");
   const [coverImage, setCoverImage] = useState("");
+  const [profileFile, setProfileFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [mapLink, setMapLink] = useState("");
   const [speechVideo, setSpeechVideo] = useState("");
 
@@ -89,6 +104,8 @@ export function SettingsAdmin() {
       setSpeechVideo(social.speech_video || "");
     }
   }, [q.data]);
+
+  const [isPending, startTransition] = useTransition();
 
   const updateMut = useMutation({
     mutationFn: (data: ParliamentInfoInput) => updateInfo({ data }),
@@ -133,7 +150,50 @@ export function SettingsAdmin() {
       },
     };
 
-    updateMut.mutate(payload);
+    startTransition(async () => {
+      try {
+        let finalProfileImage = profileImage;
+        let finalCoverImage = coverImage;
+
+        if (profileFile) {
+          finalProfileImage = await uploadImage(profileFile);
+        }
+        if (coverFile) {
+          finalCoverImage = await uploadImage(coverFile);
+        }
+
+        const payload = {
+          id: q.data?.id || "parliament-info-magdy-bayoumi",
+          name,
+          title,
+          bio,
+          office_address: officeAddress,
+          phone,
+          email,
+          working_hours: workingHours,
+          social_media: {
+            facebook,
+            twitter,
+            instagram,
+            youtube,
+            whatsapp,
+            party,
+            committee,
+            district,
+            profile_image: finalProfileImage,
+            cover_image: finalCoverImage,
+            map_link: mapLink,
+            speech_video: speechVideo,
+          },
+        };
+
+        await updateMut.mutateAsync(payload);
+        setProfileFile(null);
+        setCoverFile(null);
+      } catch (err: any) {
+        toast.error(err.message || "تعذر حفظ الإعدادات والصور");
+      }
+    });
   };
 
   if (q.isLoading) {
@@ -441,22 +501,43 @@ export function SettingsAdmin() {
                 </div>
               </div>
 
-              <div>
-                <label className={labelClass}>رابط الصورة الشخصية (Avatar)</label>
-                <div className="relative">
-                  <div className={iconWrapper}>
-                    <ImageIcon className="h-4 w-4" />
-                  </div>
-                  <input
-                    type="text"
-                    value={profileImage}
-                    onChange={(e) => setProfileImage(e.target.value)}
-                    placeholder="/src/assets/avatar.jpg"
-                    className={`${inputClass} pr-9 ltr`}
-                    dir="ltr"
-                  />
-                </div>
-              </div>
+              <AdminImageUpload
+                label="الصورة الشخصية (Avatar)"
+                preview={profileImage || null}
+                onFileSelect={(file) => {
+                  if (file) {
+                    setProfileFile(file);
+                    setProfileImage(URL.createObjectURL(file));
+                  }
+                }}
+                onClear={() => {
+                  setProfileFile(null);
+                  setProfileImage("");
+                }}
+                onLinkChange={(url) => {
+                  setProfileFile(null);
+                  setProfileImage(url);
+                }}
+              />
+
+              <AdminImageUpload
+                label="صورة الغلاف (Cover Image)"
+                preview={coverImage || null}
+                onFileSelect={(file) => {
+                  if (file) {
+                    setCoverFile(file);
+                    setCoverImage(URL.createObjectURL(file));
+                  }
+                }}
+                onClear={() => {
+                  setCoverFile(null);
+                  setCoverImage("");
+                }}
+                onLinkChange={(url) => {
+                  setCoverFile(null);
+                  setCoverImage(url);
+                }}
+              />
 
               <div className="sm:col-span-2">
                 <label className={labelClass}>رابط فيديو كلمة النائب في مجلس الشعب (YouTube)</label>
@@ -480,11 +561,11 @@ export function SettingsAdmin() {
           <div className="flex justify-end">
             <button
               type="submit"
-              disabled={updateMut.isPending}
+              disabled={isPending}
               className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-gold-500 px-6 py-3 text-sm font-extrabold text-navy-900 hover:bg-gold-400 transition shadow-sm disabled:opacity-60"
             >
               <Save className="h-4 w-4" />
-              {updateMut.isPending ? "جارٍ الحفظ..." : "حفظ التغييرات"}
+              {isPending ? "جارٍ الحفظ..." : "حفظ التغييرات"}
             </button>
           </div>
         </form>

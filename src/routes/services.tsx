@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -134,6 +134,7 @@ function CreateForm() {
   const [phone, setPhone] = useState("");
   const [civilId, setCivilId] = useState("");
   const [showUpload, setShowUpload] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   useEffect(
     () => () => {
@@ -185,17 +186,20 @@ function CreateForm() {
     }
     setItem((prev) => {
       if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl);
-      const kind = fileKind(f);
-      const previewUrl = kind === "image" || kind === "pdf" ? URL.createObjectURL(f) : null;
-      return {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        file: f,
-        kind,
-        previewUrl,
-        progress: 0,
-        status: "pending",
-      };
+      return null;
     });
+    const kind = fileKind(f);
+    const previewUrl = kind === "image" || kind === "pdf" ? URL.createObjectURL(f) : null;
+    const newItem: UploadItem = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      file: f,
+      kind,
+      previewUrl,
+      progress: 0,
+      status: "pending",
+    };
+    setItem(newItem);
+    uploadOne(newItem).catch((e) => console.error("Upload error on file accept:", e));
   };
 
   const onFilesPicked = (list: FileList | null) => {
@@ -281,32 +285,34 @@ function CreateForm() {
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    setUploading(true);
-    try {
-      const attachments: string[] = [];
-      if (item) {
-        if (item.status === "done" && item.remotePath) {
-          attachments.push(item.remotePath);
-        } else {
-          const p = await uploadOne(item);
-          attachments.push(p);
+    startTransition(async () => {
+      setUploading(true);
+      try {
+        const attachments: string[] = [];
+        if (item) {
+          if (item.status === "done" && item.remotePath) {
+            attachments.push(item.remotePath);
+          } else {
+            const p = await uploadOne(item);
+            attachments.push(p);
+          }
         }
+        await m.mutateAsync({
+          citizenName: f.get("citizenName"),
+          citizenCivilId: f.get("citizenCivilId"),
+          citizenPhone: f.get("citizenPhone"),
+          citizenEmail: f.get("citizenEmail") || "",
+          title: f.get("title"),
+          category: f.get("category"),
+          description: f.get("description"),
+          attachments,
+        });
+      } catch (err: any) {
+        toast.error(err.message || "تعذر رفع الملف");
+      } finally {
+        setUploading(false);
       }
-      m.mutate({
-        citizenName: f.get("citizenName"),
-        citizenCivilId: f.get("citizenCivilId"),
-        citizenPhone: f.get("citizenPhone"),
-        citizenEmail: f.get("citizenEmail") || "",
-        title: f.get("title"),
-        category: f.get("category"),
-        description: f.get("description"),
-        attachments,
-      });
-    } catch (err: any) {
-      toast.error(err.message || "تعذر رفع الملف");
-    } finally {
-      setUploading(false);
-    }
+    });
   };
 
   const hasError = item?.status === "error";
@@ -314,7 +320,7 @@ function CreateForm() {
     ? `جارٍ الرفع... ${item?.progress ?? 0}%`
     : hasError
       ? "إعادة محاولة الرفع والإرسال"
-      : m.isPending
+      : isPending
         ? "جارٍ الإرسال..."
         : "إرسال المعاملة";
 
@@ -623,7 +629,7 @@ function CreateForm() {
       </section>
 
       <button
-        disabled={m.isPending || uploading}
+        disabled={isPending || uploading}
         className="w-full rounded-lg cursor-pointer bg-gold-500 px-5 py-3 font-bold text-navy-900 hover:bg-gold-400 disabled:opacity-60"
       >
         {submitLabel}
@@ -667,6 +673,7 @@ function Field({ label, children }: { label: React.ReactNode; children: React.Re
 function TrackForm() {
   const track = useServerFn(trackCitizenRequest);
   const [results, setResults] = useState<CitizenRequestPublic[] | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const m = useMutation({
     mutationFn: (query: string) => track({ data: { query } }),
@@ -682,7 +689,9 @@ function TrackForm() {
         onSubmit={(e) => {
           e.preventDefault();
           const f = new FormData(e.currentTarget);
-          m.mutate(String(f.get("q") || "").trim());
+          startTransition(async () => {
+            await m.mutateAsync(String(f.get("q") || "").trim());
+          });
         }}
         className="rounded-2xl border border-navy-100 bg-white p-6 shadow-sm"
       >
@@ -699,10 +708,10 @@ function TrackForm() {
         </Field>
         <div className="mt-3">
           <button
-            disabled={m.isPending}
+            disabled={isPending}
             className="rounded-lg cursor-pointer bg-navy-800 px-5 py-2 font-bold text-white hover:bg-navy-700 disabled:opacity-60"
           >
-            {m.isPending ? "جارٍ البحث..." : "بحث"}
+            {isPending ? "جارٍ البحث..." : "بحث"}
           </button>
         </div>
         <style>{`.input{width:100%;border-radius:.5rem;border:1px solid #e5e7eb;background:#fff;padding:.6rem .8rem;font-size:.9rem}.input:focus{border-color:#c5a85c;box-shadow:0 0 0 3px rgba(197,168,92,.15)}`}</style>

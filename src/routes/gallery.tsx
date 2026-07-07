@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { ImageOff } from "lucide-react";
@@ -20,12 +20,23 @@ export const Route = createFileRoute("/gallery")({
   loader: ({ context }) => {
     context.queryClient.ensureQueryData(galleryQuery);
   },
-  component: () => (
+  component: GalleryPage,
+});
+
+function GalleryPage() {
+  const location = useLocation();
+  const isDetailsPage = location.pathname !== "/gallery" && location.pathname !== "/gallery/";
+
+  if (isDetailsPage) {
+    return <Outlet />;
+  }
+
+  return (
     <SiteLayout>
       <Inner />
     </SiteLayout>
-  ),
-});
+  );
+}
 
 function Inner() {
   const items = useSuspenseQuery(galleryQuery).data as GalleryItem[];
@@ -61,7 +72,7 @@ function Inner() {
           <button
             key={g.id}
             onClick={() => setActive(g)}
-            className="group overflow-hidden cursor-pointer rounded-xl text-right"
+            className="group overflow-hidden cursor-pointer rounded-xl text-right block w-full"
           >
             {g.image_url && !g.image_url.includes("/src/assets/") ? (
               <img

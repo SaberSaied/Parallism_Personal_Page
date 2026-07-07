@@ -7,6 +7,9 @@ import {
   getAchievements,
   getInitiatives,
   getGallery,
+  getAchievementById,
+  getInitiativeById,
+  getGalleryItemById,
 } from "./content.functions";
 
 export const parliamentInfoQuery = queryOptions({
@@ -37,3 +40,21 @@ export const galleryQuery = queryOptions({
   queryKey: ["gallery"],
   queryFn: () => getGallery(),
 });
+
+export const achievementByIdQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["achievement", id],
+    queryFn: () => getAchievementById({ data: id }),
+  });
+
+export const initiativeByIdQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["initiative", id],
+    queryFn: () => getInitiativeById({ data: id }),
+  });
+
+export const galleryItemByIdQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["gallery_item", id],
+    queryFn: () => getGalleryItemById({ data: id }),
+  });

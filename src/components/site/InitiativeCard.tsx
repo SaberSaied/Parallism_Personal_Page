@@ -8,6 +8,8 @@ const statusStyles: Record<string, string> = {
   "مخطط له": "bg-amber-100 text-amber-800 ring-amber-200",
 };
 
+import { Link } from "@tanstack/react-router";
+
 export function InitiativeCard({
   item,
   onOpen,
@@ -15,12 +17,8 @@ export function InitiativeCard({
   item: Initiative;
   onOpen?: (i: Initiative) => void;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onOpen?.(item)}
-      className="block w-full overflow-hidden rounded-2xl cursor-pointer bg-white text-right shadow-sm ring-1 ring-navy-100 transition hover:-translate-y-1 hover:shadow-lg"
-    >
+  const content = (
+    <>
       <div className="relative aspect-[16/9] overflow-hidden">
         {item.image && !item.image.includes("/src/assets/") ? (
           <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
@@ -62,6 +60,28 @@ export function InitiativeCard({
           </div>
         </div>
       </div>
-    </button>
+    </>
+  );
+
+  if (onOpen) {
+    return (
+      <button
+        type="button"
+        onClick={() => onOpen(item)}
+        className="block w-full overflow-hidden rounded-2xl cursor-pointer bg-white text-right shadow-sm ring-1 ring-navy-100 transition hover:-translate-y-1 hover:shadow-lg w-full text-right"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <Link
+      to="/initiatives/$id"
+      params={{ id: item.id }}
+      className="block w-full overflow-hidden rounded-2xl cursor-pointer bg-white text-right shadow-sm ring-1 ring-navy-100 transition hover:-translate-y-1 hover:shadow-lg"
+    >
+      {content}
+    </Link>
   );
 }

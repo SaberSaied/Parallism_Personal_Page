@@ -118,7 +118,9 @@ function HomeContent() {
         />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {achievements.slice(0, 4).map((a) => (
-            <AchievementCard key={a.id} ach={a} onOpen={setActiveAchievement} />
+            <div key={a.id} id={a.slug}>
+              <AchievementCard ach={a} onOpen={setActiveAchievement} />
+            </div>
           ))}
         </div>
       </section>
@@ -153,7 +155,7 @@ function HomeContent() {
             <button
               key={g.id}
               onClick={() => setActiveGallery(g)}
-              className="group block overflow-hidden cursor-pointer rounded-xl cursor-pointer text-right w-full"
+              className="group block overflow-hidden cursor-pointer rounded-xl text-right w-full"
             >
               {g.image_url && !g.image_url.includes("/src/assets/") ? (
                 <img
@@ -171,7 +173,6 @@ function HomeContent() {
         </div>
       </section>
 
-      {/* Detail Modals / Lightboxes */}
       <DetailModal open={!!activeAchievement} onClose={() => setActiveAchievement(null)}>
         {activeAchievement && (
           <article>
@@ -209,6 +210,15 @@ function HomeContent() {
               <p className="mt-3 text-base text-navy-600">{activeAchievement.description}</p>
               <div className="mt-5 whitespace-pre-line text-sm leading-7 text-navy-700">
                 {activeAchievement.content}
+              </div>
+              <div className="mt-8 pt-4 border-t border-navy-100 flex justify-end">
+                <Link
+                  to="/achievements/$id"
+                  params={{ id: activeAchievement.id }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-gold-600 px-4 py-2 text-sm font-bold text-white hover:bg-gold-700 transition"
+                >
+                  عرض صفحة التفاصيل الكاملة <ArrowLeft className="h-4 w-4" />
+                </Link>
               </div>
             </div>
           </article>
@@ -265,6 +275,15 @@ function HomeContent() {
 
               <div className="mt-5 whitespace-pre-line text-sm leading-7 text-navy-700">
                 {activeInitiative.content}
+              </div>
+              <div className="mt-8 pt-4 border-t border-navy-100 flex justify-end">
+                <Link
+                  to="/initiatives/$id"
+                  params={{ id: activeInitiative.id }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-gold-600 px-4 py-2 text-sm font-bold text-white hover:bg-gold-700 transition"
+                >
+                  عرض صفحة التفاصيل الكاملة <ArrowLeft className="h-4 w-4" />
+                </Link>
               </div>
             </div>
           </article>

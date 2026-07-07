@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -57,6 +57,7 @@ function AdminPage() {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(max-width: 1023px)").matches;
   });
+  const [isPending, startTransition] = useTransition();
 
   const bootstrapMut = useMutation({
     mutationFn: () => bootstrap(),
@@ -93,11 +94,15 @@ function AdminPage() {
             النظام.
           </p>
           <button
-            onClick={() => bootstrapMut.mutate()}
-            disabled={bootstrapMut.isPending}
+            onClick={() => {
+              startTransition(async () => {
+                await bootstrapMut.mutateAsync();
+              });
+            }}
+            disabled={isPending}
             className="mt-6 w-full rounded-lg cursor-pointer bg-navy-800 px-5 py-3 font-bold text-white hover:bg-navy-700 disabled:opacity-60 sm:w-auto"
           >
-            {bootstrapMut.isPending ? "..." : "تفعيل أول مسؤول"}
+            {isPending ? "..." : "تفعيل أول مسؤول"}
           </button>
           <button
             onClick={signOut}

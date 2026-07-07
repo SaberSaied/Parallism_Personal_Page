@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -12,8 +12,20 @@ import {
 } from "@/lib/content.functions";
 import { achievementsQuery, initiativesQuery, galleryQuery } from "@/lib/queries";
 import type { Achievement, Initiative, GalleryItem } from "@/lib/parliament-types";
-import { Modal, FieldRow } from "./admin-helpers";
+import { Modal, FieldRow, AdminImageUpload } from "./admin-helpers";
 import { CrudList } from "./CrudList";
+import { supabase } from "@/integrations/supabase/client";
+
+const uploadImage = async (file: File): Promise<string> => {
+  const ext = file.name.includes(".") ? file.name.split(".").pop() : "";
+  const path = `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext ? `.${ext}` : ""}`;
+  const { error } = await supabase.storage
+    .from("request-attachments")
+    .upload(path, file, { cacheControl: "3600", upsert: false });
+  if (error) throw error;
+  const { data } = supabase.storage.from("request-attachments").getPublicUrl(path);
+  return data.publicUrl;
+};
 
 const ACH_FIELDS: Array<{ key: keyof Achievement; label: string; type?: string; rows?: number }> = [
   { key: "title", label: "العنوان" },
@@ -32,6 +44,20 @@ export function AchievementsAdmin() {
   const upsert = useServerFn(upsertAchievement);
   const del = useServerFn(deleteAchievement);
   const [edit, setEdit] = useState<Partial<Achievement> | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (edit) {
+      setPreview(edit.image || null);
+      setSelectedFile(null);
+    } else {
+      setPreview(null);
+      setSelectedFile(null);
+    }
+  }, [edit]);
 
   const upsertMut = useMutation({
     mutationFn: (data: any) => upsert({ data }),
@@ -45,7 +71,7 @@ export function AchievementsAdmin() {
   const deleteMut = useMutation({
     mutationFn: (id: string) => del({ data: { id } }),
     onSuccess: () => {
-      toast.success("تم الحذف");
+      toast.success("تم الحفظ");
       qc.invalidateQueries({ queryKey: ["achievements"] });
     },
     onError: (e: any) => toast.error(e.message),
@@ -59,7 +85,11 @@ export function AchievementsAdmin() {
       rows={items.map((i) => ({ id: i.id, image: i.image, cells: [i.title, i.category, i.date] }))}
       onNew={() => setEdit({ likes: 0 })}
       onEdit={(id) => setEdit(items.find((i) => i.id === id) || null)}
-      onDelete={(id) => deleteMut.mutate(id)}
+      onDelete={(id) => {
+        startTransition(async () => {
+          await deleteMut.mutateAsync(id);
+        });
+      }}
     >
       {edit && (
         <Modal onClose={() => setEdit(null)} title={edit.id ? "تعديل إنجاز" : "إضافة إنجاز"}>
@@ -68,26 +98,55 @@ export function AchievementsAdmin() {
               e.preventDefault();
               const f = new FormData(e.currentTarget);
               const data: any = { id: edit.id };
-              ACH_FIELDS.forEach((field) => {
+              ACH_FIELDS.filter((field) => field.key !== "image").forEach((field) => {
                 const v = f.get(field.key as string);
                 data[field.key] = field.type === "number" ? Number(v) : v;
               });
-              upsertMut.mutate(data);
+              startTransition(async () => {
+                try {
+                  let imageUrl = edit.image || "";
+                  if (selectedFile) {
+                    imageUrl = await uploadImage(selectedFile);
+                  }
+                  data.image = imageUrl;
+                  await upsertMut.mutateAsync(data);
+                } catch (err: any) {
+                  toast.error(err.message || "تعذر رفع الصورة");
+                }
+              });
             }}
             className="space-y-3"
           >
-            {ACH_FIELDS.map((field) => (
+            {ACH_FIELDS.filter((field) => field.key !== "image").map((field) => (
               <FieldRow
                 key={field.key as string}
                 field={field}
                 defaultValue={(edit as any)[field.key]}
               />
             ))}
+            <AdminImageUpload
+              label="الصورة"
+              preview={preview}
+              onFileSelect={(file) => {
+                if (file) {
+                  setSelectedFile(file);
+                  setPreview(URL.createObjectURL(file));
+                }
+              }}
+              onClear={() => {
+                setSelectedFile(null);
+                setPreview(null);
+              }}
+              onLinkChange={(url) => {
+                setSelectedFile(null);
+                setPreview(url);
+              }}
+            />
             <button
-              disabled={upsertMut.isPending}
-              className="w-full cursor-pointer rounded-lg bg-gold-500 px-4 py-2 font-bold text-navy-900 sm:w-auto"
+              disabled={isPending}
+              className="w-full cursor-pointer rounded-lg bg-gold-500 px-4 py-2 font-bold text-navy-900 sm:w-auto disabled:opacity-60"
             >
-              حفظ
+              {isPending ? "..." : "حفظ"}
             </button>
           </form>
         </Modal>
@@ -120,6 +179,20 @@ export function InitiativesAdmin() {
   const upsert = useServerFn(upsertInitiative);
   const del = useServerFn(deleteInitiative);
   const [edit, setEdit] = useState<Partial<Initiative> | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (edit) {
+      setPreview(edit.image || null);
+      setSelectedFile(null);
+    } else {
+      setPreview(null);
+      setSelectedFile(null);
+    }
+  }, [edit]);
 
   const upsertMut = useMutation({
     mutationFn: (data: any) => upsert({ data }),
@@ -133,7 +206,7 @@ export function InitiativesAdmin() {
   const deleteMut = useMutation({
     mutationFn: (id: string) => del({ data: { id } }),
     onSuccess: () => {
-      toast.success("تم الحذف");
+      toast.success("تم الحفظ");
       qc.invalidateQueries({ queryKey: ["initiatives"] });
     },
     onError: (e: any) => toast.error(e.message),
@@ -151,7 +224,11 @@ export function InitiativesAdmin() {
       }))}
       onNew={() => setEdit({ status: "نشط", progress: 0 })}
       onEdit={(id) => setEdit(items.find((i) => i.id === id) || null)}
-      onDelete={(id) => deleteMut.mutate(id)}
+      onDelete={(id) => {
+        startTransition(async () => {
+          await deleteMut.mutateAsync(id);
+        });
+      }}
     >
       {edit && (
         <Modal onClose={() => setEdit(null)} title={edit.id ? "تعديل مبادرة" : "إضافة مبادرة"}>
@@ -160,26 +237,55 @@ export function InitiativesAdmin() {
               e.preventDefault();
               const f = new FormData(e.currentTarget);
               const data: any = { id: edit.id };
-              INI_FIELDS.forEach((field) => {
+              INI_FIELDS.filter((field) => field.key !== "image").forEach((field) => {
                 const v = f.get(field.key as string);
                 data[field.key] = field.type === "number" ? Number(v) : v;
               });
-              upsertMut.mutate(data);
+              startTransition(async () => {
+                try {
+                  let imageUrl = edit.image || "";
+                  if (selectedFile) {
+                    imageUrl = await uploadImage(selectedFile);
+                  }
+                  data.image = imageUrl;
+                  await upsertMut.mutateAsync(data);
+                } catch (err: any) {
+                  toast.error(err.message || "تعذر رفع الصورة");
+                }
+              });
             }}
             className="space-y-3"
           >
-            {INI_FIELDS.map((field) => (
+            {INI_FIELDS.filter((field) => field.key !== "image").map((field) => (
               <FieldRow
                 key={field.key as string}
                 field={field}
                 defaultValue={(edit as any)[field.key]}
               />
             ))}
+            <AdminImageUpload
+              label="الصورة"
+              preview={preview}
+              onFileSelect={(file) => {
+                if (file) {
+                  setSelectedFile(file);
+                  setPreview(URL.createObjectURL(file));
+                }
+              }}
+              onClear={() => {
+                setSelectedFile(null);
+                setPreview(null);
+              }}
+              onLinkChange={(url) => {
+                setSelectedFile(null);
+                setPreview(url);
+              }}
+            />
             <button
-              disabled={upsertMut.isPending}
-              className="w-full cursor-pointer rounded-lg bg-gold-500 px-4 py-2 font-bold text-navy-900 sm:w-auto"
+              disabled={isPending}
+              className="w-full cursor-pointer rounded-lg bg-gold-500 px-4 py-2 font-bold text-navy-900 sm:w-auto disabled:opacity-60"
             >
-              حفظ
+              {isPending ? "..." : "حفظ"}
             </button>
           </form>
         </Modal>
@@ -201,6 +307,20 @@ export function GalleryAdmin() {
   const upsert = useServerFn(upsertGallery);
   const del = useServerFn(deleteGallery);
   const [edit, setEdit] = useState<Partial<GalleryItem> | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (edit) {
+      setPreview(edit.image_url || null);
+      setSelectedFile(null);
+    } else {
+      setPreview(null);
+      setSelectedFile(null);
+    }
+  }, [edit]);
 
   const upsertMut = useMutation({
     mutationFn: (data: any) => upsert({ data }),
@@ -214,7 +334,7 @@ export function GalleryAdmin() {
   const deleteMut = useMutation({
     mutationFn: (id: string) => del({ data: { id } }),
     onSuccess: () => {
-      toast.success("تم الحذف");
+      toast.success("تم الحفظ");
       qc.invalidateQueries({ queryKey: ["gallery"] });
     },
     onError: (e: any) => toast.error(e.message),
@@ -232,7 +352,11 @@ export function GalleryAdmin() {
       }))}
       onNew={() => setEdit({})}
       onEdit={(id) => setEdit(items.find((i) => i.id === id) || null)}
-      onDelete={(id) => deleteMut.mutate(id)}
+      onDelete={(id) => {
+        startTransition(async () => {
+          await deleteMut.mutateAsync(id);
+        });
+      }}
     >
       {edit && (
         <Modal onClose={() => setEdit(null)} title={edit.id ? "تعديل صورة" : "إضافة صورة"}>
@@ -241,25 +365,54 @@ export function GalleryAdmin() {
               e.preventDefault();
               const f = new FormData(e.currentTarget);
               const data: any = { id: edit.id };
-              GAL_FIELDS.forEach((field) => {
+              GAL_FIELDS.filter((field) => field.key !== "image_url").forEach((field) => {
                 data[field.key] = f.get(field.key);
               });
-              upsertMut.mutate(data);
+              startTransition(async () => {
+                try {
+                  let imageUrl = edit.image_url || "";
+                  if (selectedFile) {
+                    imageUrl = await uploadImage(selectedFile);
+                  }
+                  data.image_url = imageUrl;
+                  await upsertMut.mutateAsync(data);
+                } catch (err: any) {
+                  toast.error(err.message || "تعذر رفع الصورة");
+                }
+              });
             }}
             className="space-y-3"
           >
-            {GAL_FIELDS.map((field) => (
+            {GAL_FIELDS.filter((field) => field.key !== "image_url").map((field) => (
               <FieldRow
                 key={field.key}
                 field={field as any}
                 defaultValue={(edit as any)[field.key]}
               />
             ))}
+            <AdminImageUpload
+              label="الصورة"
+              preview={preview}
+              onFileSelect={(file) => {
+                if (file) {
+                  setSelectedFile(file);
+                  setPreview(URL.createObjectURL(file));
+                }
+              }}
+              onClear={() => {
+                setSelectedFile(null);
+                setPreview(null);
+              }}
+              onLinkChange={(url) => {
+                setSelectedFile(null);
+                setPreview(url);
+              }}
+            />
             <button
-              disabled={upsertMut.isPending}
-              className="w-full cursor-pointer rounded-lg bg-gold-500 px-4 py-2 font-bold text-navy-900 sm:w-auto"
+              disabled={isPending}
+              className="w-full cursor-pointer rounded-lg bg-gold-500 px-4 py-2 font-bold text-navy-900 sm:w-auto disabled:opacity-60"
             >
-              حفظ
+              {isPending ? "..." : "حفظ"}
             </button>
           </form>
         </Modal>

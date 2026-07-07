@@ -155,3 +155,128 @@ export function downloadBlob(content: string, filename: string, mime: string) {
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+import { useState, useRef } from "react";
+import { Upload, X } from "lucide-react";
+
+interface AdminImageUploadProps {
+  label: string;
+  preview: string | null;
+  onFileSelect: (file: File | null) => void;
+  onClear: () => void;
+  onLinkChange: (url: string) => void;
+}
+
+export function AdminImageUpload({ label, preview, onFileSelect, onClear, onLinkChange }: AdminImageUploadProps) {
+  const [dragActive, setDragActive] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [linkInput, setLinkInput] = useState("");
+
+  return (
+    <div className="space-y-2">
+      <span className="block text-sm font-bold text-navy-700">{label}</span>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0] || null;
+          onFileSelect(file);
+        }}
+        className="hidden"
+      />
+      {!preview ? (
+        <div className="space-y-2">
+          <div
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDragActive(true);
+            }}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDragActive(true);
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDragActive(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDragActive(false);
+              const file = e.dataTransfer.files?.[0] || null;
+              onFileSelect(file);
+            }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                inputRef.current?.click();
+              }
+            }}
+            className={`flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-8 text-sm font-bold transition ${
+              dragActive
+                ? "border-gold-500 bg-gold-50 text-navy-900"
+                : "border-navy-200 bg-navy-50/40 text-navy-700 hover:border-gold-400 hover:bg-gold-50"
+            }`}
+          >
+            <Upload className="h-5 w-5 text-navy-500" />
+            <span>اسحب وأفلت الصورة هنا أو اضغط للاختيار</span>
+            <span className="text-[11px] font-normal text-navy-500">
+              أو اختر ملف صورة JPG, PNG, WebP
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              placeholder="أو ألصق رابط الصورة مباشرة هنا..."
+              value={linkInput}
+              onChange={(e) => setLinkInput(e.target.value)}
+              className="flex-1 rounded-lg border border-navy-200 px-3 py-2 text-xs focus:border-gold-500 focus:outline-none ltr"
+              dir="ltr"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                if (linkInput.trim()) {
+                  onLinkChange(linkInput.trim());
+                  setLinkInput("");
+                }
+              }}
+              className="rounded-lg bg-navy-800 px-4 py-2 text-xs font-bold text-white hover:bg-navy-700 transition shrink-0"
+            >
+              إضافة الرابط
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-3 rounded-lg border border-navy-100 bg-white p-3">
+          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded bg-navy-50">
+            <img src={preview} alt="Preview" className="h-full w-full object-cover" />
+          </div>
+          <div className="min-w-0 flex-1 flex items-center justify-between gap-2">
+            <div className="truncate text-xs font-bold text-navy-800">
+              {preview.startsWith("blob:") ? "الصورة المختارة" : "رابط الصورة المضاف"}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onClear();
+                if (inputRef.current) inputRef.current.value = "";
+              }}
+              aria-label="حذف"
+              className="cursor-pointer text-rose-500 hover:text-rose-700 animate-pulse"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

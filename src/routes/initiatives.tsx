@@ -1,10 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import { Calendar, Tag, TrendingUp } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { InitiativeCard } from "@/components/site/InitiativeCard";
 import { DetailModal } from "@/components/site/DetailModal";
+import { Calendar, Tag, TrendingUp, ArrowLeft } from "lucide-react";
 import { initiativesQuery } from "@/lib/queries";
 import type { Initiative } from "@/lib/parliament-types";
 
@@ -22,12 +22,23 @@ export const Route = createFileRoute("/initiatives")({
   loader: ({ context }) => {
     context.queryClient.ensureQueryData(initiativesQuery);
   },
-  component: () => (
+  component: InitiativesPage,
+});
+
+function InitiativesPage() {
+  const location = useLocation();
+  const isDetailsPage = location.pathname !== "/initiatives" && location.pathname !== "/initiatives/";
+
+  if (isDetailsPage) {
+    return <Outlet />;
+  }
+
+  return (
     <SiteLayout>
       <Inner />
     </SiteLayout>
-  ),
-});
+  );
+}
 
 function Inner() {
   const items = useSuspenseQuery(initiativesQuery).data as Initiative[];
@@ -96,6 +107,15 @@ function Inner() {
 
               <div className="mt-5 whitespace-pre-line text-sm leading-7 text-navy-700">
                 {open.content}
+              </div>
+              <div className="mt-8 pt-4 border-t border-navy-100 flex justify-end">
+                <Link
+                  to="/initiatives/$id"
+                  params={{ id: open.id }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-gold-600 px-4 py-2 text-sm font-bold text-white hover:bg-gold-700 transition"
+                >
+                  عرض صفحة التفاصيل الكاملة <ArrowLeft className="h-4 w-4" />
+                </Link>
               </div>
             </div>
           </article>

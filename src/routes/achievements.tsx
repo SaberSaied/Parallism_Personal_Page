@@ -1,10 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import { Heart, Calendar, Tag } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { AchievementCard } from "@/components/site/AchievementCard";
 import { DetailModal } from "@/components/site/DetailModal";
+import { Heart, Calendar, Tag, ArrowLeft } from "lucide-react";
 import { achievementsQuery } from "@/lib/queries";
 import type { Achievement } from "@/lib/parliament-types";
 
@@ -26,6 +26,13 @@ export const Route = createFileRoute("/achievements")({
 });
 
 function AchievementsPage() {
+  const location = useLocation();
+  const isDetailsPage = location.pathname !== "/achievements" && location.pathname !== "/achievements/";
+
+  if (isDetailsPage) {
+    return <Outlet />;
+  }
+
   return (
     <SiteLayout>
       <Inner />
@@ -98,6 +105,15 @@ function Inner() {
               <p className="mt-3 text-base text-navy-600">{open.description}</p>
               <div className="mt-5 whitespace-pre-line text-sm leading-7 text-navy-700">
                 {open.content}
+              </div>
+              <div className="mt-8 pt-4 border-t border-navy-100 flex justify-end">
+                <Link
+                  to="/achievements/$id"
+                  params={{ id: open.id }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-gold-600 px-4 py-2 text-sm font-bold text-white hover:bg-gold-700 transition"
+                >
+                  عرض صفحة التفاصيل الكاملة <ArrowLeft className="h-4 w-4" />
+                </Link>
               </div>
             </div>
           </article>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -26,6 +26,7 @@ export function RequestsAdmin() {
   const update = useServerFn(updateCitizenRequest);
   const q = useQuery({ queryKey: ["admin_requests"], queryFn: () => fn() });
   const qc = useQueryClient();
+  const [isPending, startTransition] = useTransition();
   const mut = useMutation({
     mutationFn: (data: any) => update({ data }),
     onSuccess: (_, variables) => {
@@ -91,7 +92,9 @@ export function RequestsAdmin() {
 
   const handleDelete = (id: string, trackingNumber: string) => {
     if (window.confirm(`هل أنت متأكد من رغبتك في حذف المعاملة رقم ${trackingNumber}؟`)) {
-      deleteMut.mutate(id);
+      startTransition(async () => {
+        await deleteMut.mutateAsync(id);
+      });
     }
   };
 
@@ -171,10 +174,12 @@ export function RequestsAdmin() {
                   <td className="whitespace-nowrap p-3 text-xs">
                     <select
                       value={r.status}
-                      disabled={mut.isPending}
+                      disabled={isPending}
                       onChange={(e) => {
                         const newStatus = e.target.value as RequestStatus;
-                        mut.mutate({ id: r.id, status: newStatus });
+                        startTransition(async () => {
+                          await mut.mutateAsync({ id: r.id, status: newStatus });
+                        });
                       }}
                       className={`cursor-pointer rounded-full px-2.5 py-1 text-xs font-bold border outline-none transition-colors ${statusColor[r.status as RequestStatus] || "bg-navy-50 text-navy-700 border-navy-200"}`}
                     >
@@ -221,10 +226,12 @@ export function RequestsAdmin() {
                 <span className="font-mono text-xs text-navy-500">{r.tracking_number}</span>
                 <select
                   value={r.status}
-                  disabled={mut.isPending}
+                  disabled={isPending}
                   onChange={(e) => {
                     const newStatus = e.target.value as RequestStatus;
-                    mut.mutate({ id: r.id, status: newStatus });
+                    startTransition(async () => {
+                      await mut.mutateAsync({ id: r.id, status: newStatus });
+                    });
                   }}
                   className={`cursor-pointer rounded-full px-2 py-0.5 text-[11px] font-bold border outline-none transition-colors ${statusColor[r.status as RequestStatus] || "bg-navy-50 text-navy-700 border-navy-200"}`}
                 >
@@ -319,11 +326,13 @@ export function RequestsAdmin() {
             onSubmit={(e) => {
               e.preventDefault();
               const f = new FormData(e.currentTarget);
-              mut.mutate({
-                id: open.id,
-                status: f.get("status"),
-                admin_notes: f.get("admin_notes"),
-                assigned_to: f.get("assigned_to"),
+              startTransition(async () => {
+                await mut.mutateAsync({
+                  id: open.id,
+                  status: f.get("status"),
+                  admin_notes: f.get("admin_notes"),
+                  assigned_to: f.get("assigned_to"),
+                });
               });
               setOpen(null);
             }}
@@ -360,8 +369,11 @@ export function RequestsAdmin() {
                 className="w-full rounded-lg border border-navy-200 p-2"
               />
             </label>
-            <button className="w-full rounded-lg cursor-pointer bg-gold-500 px-4 py-2 font-bold text-navy-900 sm:w-auto">
-              حفظ
+            <button
+              disabled={isPending}
+              className="w-full rounded-lg cursor-pointer bg-gold-500 px-4 py-2 font-bold text-navy-900 sm:w-auto disabled:opacity-60"
+            >
+              {isPending ? "..." : "حفظ"}
             </button>
           </form>
         </Modal>

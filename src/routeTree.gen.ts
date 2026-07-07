@@ -16,6 +16,9 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AchievementsRouteImport } from './routes/achievements'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as InitiativesIdRouteImport } from './routes/initiatives_.$id'
+import { Route as GalleryIdRouteImport } from './routes/gallery_.$id'
+import { Route as AchievementsIdRouteImport } from './routes/achievements_.$id'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 
 const ServicesRoute = ServicesRouteImport.update({
@@ -52,6 +55,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InitiativesIdRoute = InitiativesIdRouteImport.update({
+  id: '/initiatives_/$id',
+  path: '/initiatives/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GalleryIdRoute = GalleryIdRouteImport.update({
+  id: '/gallery_/$id',
+  path: '/gallery/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AchievementsIdRoute = AchievementsIdRouteImport.update({
+  id: '/achievements_/$id',
+  path: '/achievements/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -66,6 +84,9 @@ export interface FileRoutesByFullPath {
   '/initiatives': typeof InitiativesRoute
   '/services': typeof ServicesRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/achievements/$id': typeof AchievementsIdRoute
+  '/gallery/$id': typeof GalleryIdRoute
+  '/initiatives/$id': typeof InitiativesIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -75,6 +96,9 @@ export interface FileRoutesByTo {
   '/initiatives': typeof InitiativesRoute
   '/services': typeof ServicesRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/achievements/$id': typeof AchievementsIdRoute
+  '/gallery/$id': typeof GalleryIdRoute
+  '/initiatives/$id': typeof InitiativesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -86,6 +110,9 @@ export interface FileRoutesById {
   '/initiatives': typeof InitiativesRoute
   '/services': typeof ServicesRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/achievements_/$id': typeof AchievementsIdRoute
+  '/gallery_/$id': typeof GalleryIdRoute
+  '/initiatives_/$id': typeof InitiativesIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -97,6 +124,9 @@ export interface FileRouteTypes {
     | '/initiatives'
     | '/services'
     | '/admin'
+    | '/achievements/$id'
+    | '/gallery/$id'
+    | '/initiatives/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -106,6 +136,9 @@ export interface FileRouteTypes {
     | '/initiatives'
     | '/services'
     | '/admin'
+    | '/achievements/$id'
+    | '/gallery/$id'
+    | '/initiatives/$id'
   id:
     | '__root__'
     | '/'
@@ -116,6 +149,9 @@ export interface FileRouteTypes {
     | '/initiatives'
     | '/services'
     | '/_authenticated/admin'
+    | '/achievements_/$id'
+    | '/gallery_/$id'
+    | '/initiatives_/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -126,6 +162,9 @@ export interface RootRouteChildren {
   GalleryRoute: typeof GalleryRoute
   InitiativesRoute: typeof InitiativesRoute
   ServicesRoute: typeof ServicesRoute
+  AchievementsIdRoute: typeof AchievementsIdRoute
+  GalleryIdRoute: typeof GalleryIdRoute
+  InitiativesIdRoute: typeof InitiativesIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -179,6 +218,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/initiatives_/$id': {
+      id: '/initiatives_/$id'
+      path: '/initiatives/$id'
+      fullPath: '/initiatives/$id'
+      preLoaderRoute: typeof InitiativesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gallery_/$id': {
+      id: '/gallery_/$id'
+      path: '/gallery/$id'
+      fullPath: '/gallery/$id'
+      preLoaderRoute: typeof GalleryIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/achievements_/$id': {
+      id: '/achievements_/$id'
+      path: '/achievements/$id'
+      fullPath: '/achievements/$id'
+      preLoaderRoute: typeof AchievementsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -208,6 +268,9 @@ const rootRouteChildren: RootRouteChildren = {
   GalleryRoute: GalleryRoute,
   InitiativesRoute: InitiativesRoute,
   ServicesRoute: ServicesRoute,
+  AchievementsIdRoute: AchievementsIdRoute,
+  GalleryIdRoute: GalleryIdRoute,
+  InitiativesIdRoute: InitiativesIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

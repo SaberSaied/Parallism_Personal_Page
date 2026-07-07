@@ -78,6 +78,33 @@ export const getGallery = createServerFn({ method: "GET" }).handler(async () => 
   return data ?? [];
 });
 
+export const getAchievementById = createServerFn({ method: "GET" })
+  .validator((id: string) => id)
+  .handler(async ({ data: id }) => {
+    const s = publicClient();
+    const { data, error } = await s.from("achievements").select("*").eq("id", id).maybeSingle();
+    if (error) throw error;
+    return data;
+  });
+
+export const getInitiativeById = createServerFn({ method: "GET" })
+  .validator((id: string) => id)
+  .handler(async ({ data: id }) => {
+    const s = publicClient();
+    const { data, error } = await s.from("initiatives").select("*").eq("id", id).maybeSingle();
+    if (error) throw error;
+    return data;
+  });
+
+export const getGalleryItemById = createServerFn({ method: "GET" })
+  .validator((id: string) => id)
+  .handler(async ({ data: id }) => {
+    const s = publicClient();
+    const { data, error } = await s.from("gallery_items").select("*").eq("id", id).maybeSingle();
+    if (error) throw error;
+    return data;
+  });
+
 // ============ ADMIN WRITES ============
 
 const achievementInput = z.object({

@@ -97,7 +97,9 @@ export function Footer({ info }: { info: ParliamentInfo | null }) {
             </li>
             <li className="flex items-center gap-2">
               <Phone className="h-4 w-4 text-gold-400" />
-              <span dir="ltr">{info.phone}</span>
+              <a href={`tel:${info.phone}`} className="hover:text-gold-400">
+                <span dir="ltr">{info.phone}</span>
+              </a>
             </li>
             <li className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-gold-400" />
